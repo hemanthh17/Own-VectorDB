@@ -11,7 +11,7 @@ from typing import Generator, List, Dict, Any
 def chunk_pdf(filepath: Path) -> Generator[str]:
     with pdfplumber.open(filepath) as f:
         for page in f.pages:
-            yield page.extract_text() 
+            yield page.extract_text()
 
 def embed_text(text: str, embed_model_name: str = "sentence-transformers/all-MiniLM-L6-v2") -> np.ndarray:
     model=transformers.AutoModel.from_pretrained(embed_model_name)
@@ -20,8 +20,6 @@ def embed_text(text: str, embed_model_name: str = "sentence-transformers/all-Min
     with torch.no_grad():
         embeddings= model(**inputs).last_hidden_state.mean(dim=1)
     return embeddings.numpy().tolist()
-
-
 
 class VectorDB:
     def __init__(self,db_path: Path):
@@ -50,7 +48,7 @@ class VectorDB:
         self.db = pyarrow.concat_tables([self.db, new_table])
         pq.write_table(self.db, self.db_path)
 
-    def add_chunks(self,text_chunks: List[str],metadata: List[Dict[str,Any]])-> None:
+    def add_chunks(self,text_chunks: List[str],metadata: List[Dict[str,Any]]=[dict()])-> None:
         for chunk,meta in zip(text_chunks,metadata):
             self._add_entry(text_chunk=chunk,metadata={**meta,'text_size':len(chunk)})
     def search_chunks(self, query: str, top_k: int = 5,additional_filters: Dict[str, Any] = dict()) -> List[Dict[str, Any]]:
