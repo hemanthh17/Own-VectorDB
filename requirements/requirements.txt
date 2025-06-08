@@ -1,0 +1,8 @@
+pyarrow 
+pandas 
+numpy 
+scikit-learn
+scipy
+torch
+transformers
+pdfplumber
