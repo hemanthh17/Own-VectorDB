@@ -55,7 +55,21 @@ class VectorDB:
             self._add_entry(text_chunk=chunk,metadata={**meta,'text_size':len(chunk)})
     def search_chunks(self, query: str, top_k: int = 5,additional_filters: Dict[str, Any] = dict()) -> List[Dict[str, Any]]:
         query_embedding = embed_text(query)
-        
+        # Apply additional_filters if provided
+        df = self.db.to_pandas()
+        for key, value in additional_filters.items():
+            # Check if key is in metadata dict (which is a column of dicts)
+            df = df[df['metadata'].apply(lambda m: isinstance(m, dict) and m.get(key) == value)]
+        df = self.db.to_pandas()
+        for key, value in additional_filters.items():
+            if key in df.columns:
+                df = df[df[key] == value]
+            else:
+            # Check inside metadata dict
+                df = df[df['metadata'].apply(lambda m: isinstance(m, dict) and m.get(key) == value)]
+        if df.empty:
+            return []
+        db_embeddings = np.array([emb[0] for emb in df['embedding'].tolist()])
         query_embedding = np.array(query_embedding[0])  # shape: (embedding_dim,)
         db_embeddings = np.array([emb[0] for emb in self.db['embedding'].to_pandas().tolist()])  # shape: (n, embedding_dim)
         similarities = np.dot(db_embeddings, query_embedding)
