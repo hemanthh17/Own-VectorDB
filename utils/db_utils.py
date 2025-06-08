@@ -67,7 +67,6 @@ class VectorDB:
                 df = df[df['metadata'].apply(lambda m: isinstance(m, dict) and m.get(key) == value)]
         if df.empty:
             return []
-        db_embeddings = np.array([emb[0] for emb in df['embedding'].tolist()])
         query_embedding = np.array(query_embedding[0])  # shape: (embedding_dim,)
         db_embeddings = np.array([emb[0] for emb in self.db['embedding'].to_pandas().tolist()])  # shape: (n, embedding_dim)
         similarities = np.dot(db_embeddings, query_embedding)
@@ -87,7 +86,17 @@ class VectorDB:
     def get_all_entries(self) -> List[Dict[str, Any]]:
         return self.db.to_pandas().to_dict(orient='records')
     def clear_db(self) -> None:
-        self.db = pyarrow.Table.from_pandas(pd.DataFrame(columns=["text","metadata","embedding"]))
+        schema = pyarrow.schema([
+                ("text", pyarrow.string()),
+                ("metadata", pyarrow.struct([
+                    ("page", pyarrow.int64()),
+                    ("source", pyarrow.string()),
+                    ("text_size", pyarrow.int64())
+                ])),
+                ("embedding", pyarrow.list_(pyarrow.list_(pyarrow.float64())))
+            ])
+        empty_df = pd.DataFrame(columns=["text", "metadata", "embedding"])
+        self.db = pyarrow.Table.from_pandas(empty_df, schema=schema, preserve_index=False)
         pq.write_table(self.db, self.db_path)
         
 
